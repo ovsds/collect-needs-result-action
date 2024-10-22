@@ -251,3 +251,23 @@ jobs:
         with:
           actual: ${{ steps.test-run.outputs.result }}
           expected: "failure"
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs:
+      - e2e-success-allowed-true
+      - e2e-success-allowed-false
+      - e2e-failure-allowed-true
+      - e2e-failure-allowed-false
+      - e2e-skip-allowed-true
+      - e2e-skip-allowed-false
+      - e2e-fail-on-failure-false
+
+    steps:
+      - name: Collect Results
+        uses: ovsds/collect-needs-result-action@v1
+        with:
+          needs_json: ${{ toJson(needs) }}
+          skip_allowed: false

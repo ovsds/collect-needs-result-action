@@ -19,12 +19,8 @@ jobs:
       - job1
       - job2
 
-    permissions:
-      contents: read
-
     steps:
-      - name: Collect Needs Result
-        id: collect-needs-result
+      - name: Collect Result
         uses: ovsds/collect-needs-result-action@v1
         with:
           needs_json: ${{ toJson(needs) }}
