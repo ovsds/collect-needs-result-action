@@ -1,27 +1,92 @@
 name: "Collect Needs Result"
-description: "Collect Needs Result Action"
+description: "Collects the results of the jobs in `needs` section of the job"
 
 inputs:
-  placeholder:
-    description: "Placeholder input to be replaced by real inputs"
+  needs_json:
+    description: "`toJson(needs)` passed directly as input"
     required: true
-    default: "placeholder"
+  cancelled_allowed:
+    description: "If `true`, cancelled jobs won't fail the action"
+    required: true
+    default: "false"
+  failure_allowed:
+    description: "If `true`, failed jobs won't fail the action"
+    required: true
+    default: "false"
+  skip_allowed:
+    description: "If `true`, skipped jobs won't fail the action"
+    required: true
+    default: "true"
+  success_allowed:
+    description: "If `true`, successful jobs won't fail the action"
+    required: true
+    default: "true"
+  fail_on_failure:
+    description: "If `true`, the action will fail if total result is failure"
+    required: true
+    default: "true"
 
 outputs:
-  placeholder:
-    description: "Placeholder output to be replaced by real outputs"
-    value: ${{steps.placeholder.outputs.placeholder }}
+  result:
+    description: "Total result"
+    value: ${{ steps.main.outputs.result }}
 
 runs:
   using: "composite"
   steps:
-    - name: Placeholder
-      id: placeholder
+    - name: Main
+      id: main
       shell: bash
+      env:
+        NEEDS_JSON: ${{ inputs.needs_json }}
+        CANCELLED_ALLOWED: ${{ inputs.cancelled_allowed }}
+        FAILURE_ALLOWED: ${{ inputs.failure_allowed }}
+        SKIP_ALLOWED: ${{ inputs.skip_allowed }}
+        SUCCESS_ALLOWED: ${{ inputs.success_allowed }}
+        FAIL_ON_FAILURE: ${{ inputs.fail_on_failure }}
       run: |
-        echo "::set-output name=placeholder::${{ inputs.placeholder }}"
+        # Collecting results
+        result="success"
 
-# https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#branding
+        while read -r entry; do
+          JOB_NAME=$(echo "$entry" | jq -r '.key')
+          JOB_RESULT=$(echo "$entry" | jq -r '.value.result')
+
+          echo "$JOB_NAME: $JOB_RESULT"
+
+          if [[ "$JOB_RESULT" == "cancelled" ]]; then
+            if [[ "$CANCELLED_ALLOWED" != "true" ]]; then
+              echo "  not allowed"
+              result="failure"
+            fi
+          elif [[ "$JOB_RESULT" == "failure" ]]; then
+            if [[ "$FAILURE_ALLOWED" != "true" ]]; then
+              echo "  not allowed"
+              result="failure"
+            fi
+          elif [[ "$JOB_RESULT" == "skipped" ]]; then
+            if [[ "$SKIP_ALLOWED" != "true" ]]; then
+              echo "  not allowed"
+              result="failure"
+            fi
+          elif [[ "$JOB_RESULT" == "success" ]]; then
+            if [[ "$SUCCESS_ALLOWED" != "true" ]]; then
+              echo "  not allowed"
+              result="failure"
+            fi
+          else
+            echo "  unknown result: not allowed"
+            result="failure"
+          fi
+        done <<< $(echo "$NEEDS_JSON" | jq -c 'to_entries[]')
+
+        echo "Total Result: $result"
+        echo "result=$result" >> $GITHUB_OUTPUT
+
+        if [[ "$result" == "failure" && "$FAIL_ON_FAILURE" == "true" ]]; then
+          exit 1
+        fi
+
 branding:
-  icon: "message-square"
-  color: "gray-dark"
+  icon: "check-circle"
+  color: "green"
