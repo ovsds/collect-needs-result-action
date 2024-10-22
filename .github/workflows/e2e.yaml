@@ -8,8 +8,56 @@ on:
       - synchronize
 
 jobs:
-  e2e-default:
-    runs-on: ubuntu-20.04
+  mock-success:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mock Success"
+
+  mock-failure:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mock Failure" && exit 1
+
+  mock-skipped:
+    runs-on: ubuntu-latest
+    if: ${{ false }}
+    steps:
+      - run: echo "Mock Skipped"
+
+  mock-success-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mock: [1, 2, 3]
+    steps:
+      - run: echo "Mock Success Matrix"
+
+  mock-failure-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mock: [1, 2, 3]
+    steps:
+      - run: |
+          if [[ ${{ matrix.mock }} == 2 ]]; then
+            echo "Mock Failure Matrix" && exit 1
+          else
+            echo "Mock Success Matrix"
+          fi
+
+  mock-skipped-matrix:
+    runs-on: ubuntu-latest
+    if: ${{ false }}
+    strategy:
+      matrix:
+        mock: [1, 2, 3]
+    steps:
+      - run: echo "Mock Skipped Matrix"
+
+  e2e-success-allowed-true:
+    runs-on: ubuntu-latest
+
+    needs: [mock-success, mock-success-matrix]
 
     permissions:
       contents: read
@@ -22,10 +70,184 @@ jobs:
         id: test-run
         uses: ./
         with:
-          placeholder: "test_placeholder"
+          needs_json: ${{ toJson(needs) }}
 
-      - name: Assert placeholder
+      - name: Assert result
         uses: nick-fields/assert-action@v2
         with:
-          actual: ${{ steps.test-run.outputs.placeholder }}
-          expected: "test_placeholder"
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "success"
+
+  e2e-success-allowed-false:
+    runs-on: ubuntu-latest
+
+    needs: [mock-success, mock-success-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        continue-on-error: true
+        with:
+          needs_json: ${{ toJson(needs) }}
+          success_allowed: false
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "failure"
+
+      - name: Assert outcome
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outcome }}
+          expected: "failure"
+
+  e2e-failure-allowed-true:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs: [mock-failure, mock-failure-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        with:
+          needs_json: ${{ toJson(needs) }}
+          failure_allowed: true
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "success"
+
+  e2e-failure-allowed-false:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs: [mock-failure, mock-failure-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        continue-on-error: true
+        with:
+          needs_json: ${{ toJson(needs) }}
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "failure"
+
+      - name: Assert outcome
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outcome }}
+          expected: "failure"
+
+  e2e-skip-allowed-true:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs: [mock-skipped, mock-skipped-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        with:
+          needs_json: ${{ toJson(needs) }}
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "success"
+
+  e2e-skip-allowed-false:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs: [mock-skipped, mock-skipped-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        continue-on-error: true
+        with:
+          needs_json: ${{ toJson(needs) }}
+          skip_allowed: false
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "failure"
+
+      - name: Assert outcome
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outcome }}
+          expected: "failure"
+
+  e2e-fail-on-failure-false:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs: [mock-failure, mock-failure-matrix]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Run
+        id: test-run
+        uses: ./
+        with:
+          needs_json: ${{ toJson(needs) }}
+          fail_on_failure: false
+
+      - name: Assert result
+        uses: nick-fields/assert-action@v2
+        with:
+          actual: ${{ steps.test-run.outputs.result }}
+          expected: "failure"

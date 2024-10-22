@@ -12,6 +12,13 @@ Collect Needs Result Action
 ```yaml
 jobs:
   collect-needs-result:
+    runs-on: ubuntu-latest
+    if: always() && !cancelled()
+
+    needs:
+      - job1
+      - job2
+
     permissions:
       contents: read
 
@@ -19,19 +26,26 @@ jobs:
       - name: Collect Needs Result
         id: collect-needs-result
         uses: ovsds/collect-needs-result-action@v1
+        with:
+          needs_json: ${{ toJson(needs) }}
 ```
 
 ### Action Inputs
 
-| Name          | Description  | Default |
-| ------------- | ------------ | ------- |
-| `placeholder` | Placeholder. |         |
+| Name                | Description                                                | Default |
+| ------------------- | ---------------------------------------------------------- | ------- |
+| `needs_json`        | `${{ toJson(needs) }}` passed directly as input            |         |
+| `cancelled_allowed` | If `true`, cancelled jobs won't fail the action            | `false` |
+| `failure_allowed`   | If `true`, failed jobs won't fail the action               | `false` |
+| `skipped_allowed`   | If `true`, skipped jobs won't fail the action              | `true`  |
+| `success_allowed`   | If `true`, successful jobs won't fail the action           | `true`  |
+| `fail_on_failure`   | If `true`, the action will fail if total result is failure | `true`  |
 
 ### Action Outputs
 
-| Name          | Description  |
-| ------------- | ------------ |
-| `placeholder` | Placeholder. |
+| Name     | Description  |
+| -------- | ------------ |
+| `result` | Total result |
 
 ## Development
 
