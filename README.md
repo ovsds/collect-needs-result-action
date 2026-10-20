@@ -33,7 +33,7 @@ jobs:
 | `needs_json`        | `${{ toJson(needs) }}` passed directly as input            |         |
 | `cancelled_allowed` | If `true`, cancelled jobs won't fail the action            | `false` |
 | `failure_allowed`   | If `true`, failed jobs won't fail the action               | `false` |
-| `skipped_allowed`   | If `true`, skipped jobs won't fail the action              | `true`  |
+| `skip_allowed`      | If `true`, skipped jobs won't fail the action              | `true`  |
 | `success_allowed`   | If `true`, successful jobs won't fail the action           | `true`  |
 | `fail_on_failure`   | If `true`, the action will fail if total result is failure | `true`  |
 
