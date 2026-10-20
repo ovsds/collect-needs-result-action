@@ -42,7 +42,8 @@ function is_allowed() {
 }
 
 function main() {
-    # Empty values are valid: an empty needs_json collects nothing, an empty flag reads as not `true`
+    # Empty values are valid: an empty flag reads as not `true`; an empty or `{}` needs_json reads as one job with an
+    # unknown result, so it collects `failure`
     INPUT_NEEDS_JSON=${INPUT_NEEDS_JSON?"INPUT_NEEDS_JSON is not set"}
     INPUT_CANCELLED_ALLOWED=${INPUT_CANCELLED_ALLOWED?"INPUT_CANCELLED_ALLOWED is not set"}
     INPUT_FAILURE_ALLOWED=${INPUT_FAILURE_ALLOWED?"INPUT_FAILURE_ALLOWED is not set"}

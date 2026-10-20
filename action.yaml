@@ -51,4 +51,4 @@ runs:
         INPUT_FAIL_ON_FAILURE: ${{ inputs.fail_on_failure }}
       run: |
         # Collect Needs Result
-        ${{ github.action_path }}/src/main.sh
+        "${GITHUB_ACTION_PATH}/src/main.sh"
