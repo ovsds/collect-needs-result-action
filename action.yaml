@@ -1,6 +1,11 @@
 name: "Collect Needs Result"
 description: "Collects the results of the jobs in `needs` section of the job"
 
+# https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#branding
+branding:
+  icon: "check-circle"
+  color: "green"
+
 inputs:
   needs_json:
     description: "`toJson(needs)` passed directly as input"
@@ -29,64 +34,21 @@ inputs:
 outputs:
   result:
     description: "Total result"
-    value: ${{ steps.main.outputs.result }}
+    value: ${{ steps.run.outputs.result }}
 
 runs:
   using: "composite"
   steps:
-    - name: Main
-      id: main
+    - name: Run
+      id: run
       shell: bash
       env:
-        NEEDS_JSON: ${{ inputs.needs_json }}
-        CANCELLED_ALLOWED: ${{ inputs.cancelled_allowed }}
-        FAILURE_ALLOWED: ${{ inputs.failure_allowed }}
-        SKIP_ALLOWED: ${{ inputs.skip_allowed }}
-        SUCCESS_ALLOWED: ${{ inputs.success_allowed }}
-        FAIL_ON_FAILURE: ${{ inputs.fail_on_failure }}
+        INPUT_NEEDS_JSON: ${{ inputs.needs_json }}
+        INPUT_CANCELLED_ALLOWED: ${{ inputs.cancelled_allowed }}
+        INPUT_FAILURE_ALLOWED: ${{ inputs.failure_allowed }}
+        INPUT_SKIP_ALLOWED: ${{ inputs.skip_allowed }}
+        INPUT_SUCCESS_ALLOWED: ${{ inputs.success_allowed }}
+        INPUT_FAIL_ON_FAILURE: ${{ inputs.fail_on_failure }}
       run: |
-        # Collecting results
-        result="success"
-
-        while read -r entry; do
-          JOB_NAME=$(echo "$entry" | jq -r '.key')
-          JOB_RESULT=$(echo "$entry" | jq -r '.value.result')
-
-          echo "$JOB_NAME: $JOB_RESULT"
-
-          if [[ "$JOB_RESULT" == "cancelled" ]]; then
-            if [[ "$CANCELLED_ALLOWED" != "true" ]]; then
-              echo "  not allowed"
-              result="failure"
-            fi
-          elif [[ "$JOB_RESULT" == "failure" ]]; then
-            if [[ "$FAILURE_ALLOWED" != "true" ]]; then
-              echo "  not allowed"
-              result="failure"
-            fi
-          elif [[ "$JOB_RESULT" == "skipped" ]]; then
-            if [[ "$SKIP_ALLOWED" != "true" ]]; then
-              echo "  not allowed"
-              result="failure"
-            fi
-          elif [[ "$JOB_RESULT" == "success" ]]; then
-            if [[ "$SUCCESS_ALLOWED" != "true" ]]; then
-              echo "  not allowed"
-              result="failure"
-            fi
-          else
-            echo "  unknown result: not allowed"
-            result="failure"
-          fi
-        done <<< $(echo "$NEEDS_JSON" | jq -c 'to_entries[]')
-
-        echo "Total Result: $result"
-        echo "result=$result" >> $GITHUB_OUTPUT
-
-        if [[ "$result" == "failure" && "$FAIL_ON_FAILURE" == "true" ]]; then
-          exit 1
-        fi
-
-branding:
-  icon: "check-circle"
-  color: "green"
+        # Collect Needs Result
+        ${{ github.action_path }}/src/main.sh
